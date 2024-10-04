@@ -1,0 +1,64 @@
+pipeline {
+    agent any
+
+    environment {
+        TERRAFORM_VERSION = "1.5.0"  // Replace with the version of Terraform you want to use
+        AWS_REGION = "us-east-1"     // Replace with your desired AWS region
+    }
+
+    stages {
+        stage('Install Terraform') {
+            steps {
+                script {
+                    sh '''
+                        # Install Terraform if not already installed
+                        if ! command -v terraform &> /dev/null; then
+                            wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+                            unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+                            sudo mv terraform /usr/local/bin/
+                        fi
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                script {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                script {
+                    sh 'terraform plan'
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                script {
+                    sh 'terraform apply -auto-approve'
+                }
+            }
+        }
+
+        stage('Terraform Destroy') {
+            steps {
+                script {
+                    input message: 'Do you want to destroy the resources?', ok: 'Yes'
+                    sh 'terraform destroy -auto-approve'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
