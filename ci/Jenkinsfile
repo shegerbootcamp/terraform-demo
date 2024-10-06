@@ -2,29 +2,16 @@ pipeline {
     agent any
 
     environment {
-        TERRAFORM_VERSION = "1.5.0"  // Replace with the version of Terraform you want to use
-        AWS_REGION = "us-east-1"     // Replace with your desired AWS region
+        // Bind AWS credentials stored in Jenkins under 'AWS-ACCESS-KEYS' to environment variables
+        AWS_ACCESS_KEY_ID     = credentials('AWS-ACCESS-KEYS').accessKey
+        AWS_SECRET_ACCESS_KEY = credentials('AWS-ACCESS-KEYS').secretKey
     }
 
     stages {
-        stage('Install Terraform') {
-            steps {
-                script {
-                    sh '''
-                        # Install Terraform if not already installed
-                        if ! command -v terraform &> /dev/null; then
-                            wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-                            unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-                            sudo mv terraform /usr/local/bin/
-                        fi
-                    '''
-                }
-            }
-        }
-
         stage('Terraform Init') {
             steps {
                 script {
+                    echo 'Initializing Terraform...'
                     sh 'terraform init'
                 }
             }
@@ -33,6 +20,7 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 script {
+                    echo 'Planning Terraform changes...'
                     sh 'terraform plan'
                 }
             }
@@ -41,6 +29,7 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 script {
+                    echo 'Applying Terraform changes...'
                     sh 'terraform apply -auto-approve'
                 }
             }
@@ -50,6 +39,7 @@ pipeline {
             steps {
                 script {
                     input message: 'Do you want to destroy the resources?', ok: 'Yes'
+                    echo 'Destroying Terraform resources...'
                     sh 'terraform destroy -auto-approve'
                 }
             }
@@ -58,6 +48,7 @@ pipeline {
 
     post {
         always {
+            echo 'Cleaning up workspace...'
             cleanWs()
         }
     }
